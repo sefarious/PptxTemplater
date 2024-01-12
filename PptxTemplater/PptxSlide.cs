@@ -21,12 +21,12 @@ namespace PptxTemplater
         /// <summary>
         /// Holds the presentation part.
         /// </summary>
-        private readonly PresentationPart presentationPart;
+        private readonly PresentationPart _presentationPart;
 
         /// <summary>
         /// Holds the slide part.
         /// </summary>
-        private readonly SlidePart slidePart;
+        private readonly SlidePart _slidePart;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PptxSlide"/> class.
@@ -35,8 +35,8 @@ namespace PptxTemplater
         /// <param name="slidePart">The slide part.</param>
         internal PptxSlide(PresentationPart presentationPart, SlidePart slidePart)
         {
-            this.presentationPart = presentationPart;
-            this.slidePart = slidePart;
+            this._presentationPart = presentationPart;
+            this._slidePart = slidePart;
         }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace PptxTemplater
         /// </remarks>
         public IEnumerable<string> GetTexts()
         {
-            return this.slidePart.Slide.Descendants<A.Paragraph>().Select(p => PptxParagraph.GetTexts(p));
+            return this._slidePart.Slide.Descendants<A.Paragraph>().Select(PptxParagraph.GetTexts);
         }
 
         /// <summary>
@@ -61,10 +61,10 @@ namespace PptxTemplater
             var title = string.Empty;
 
             // Find the title if any
-            var titleShape = this.slidePart.Slide.Descendants<Shape>().FirstOrDefault(sp => IsShapeATitle(sp));
+            var titleShape = this._slidePart.Slide.Descendants<Shape>().FirstOrDefault(IsShapeATitle);
             if (titleShape != null)
             {
-                title = string.Join(" ", titleShape.Descendants<A.Paragraph>().Select(p => PptxParagraph.GetTexts(p)));
+                title = string.Join(" ", titleShape.Descendants<A.Paragraph>().Select(PptxParagraph.GetTexts));
             }
 
             return title;
@@ -80,9 +80,9 @@ namespace PptxTemplater
         public IEnumerable<string> GetNotes()
         {
             var notes = new List<string>();
-            if (this.slidePart.NotesSlidePart != null)
+            if (this._slidePart.NotesSlidePart != null)
             {
-                notes.AddRange(this.slidePart.NotesSlidePart.NotesSlide.Descendants<A.Paragraph>().Select(p => PptxParagraph.GetTexts(p)));
+                notes.AddRange(this._slidePart.NotesSlidePart.NotesSlide.Descendants<A.Paragraph>().Select(PptxParagraph.GetTexts));
             }
             return notes;
         }
@@ -97,15 +97,17 @@ namespace PptxTemplater
             var tables = new List<PptxTable>();
 
             var tblId = 0;
-            foreach (var graphicFrame in this.slidePart.Slide.Descendants<GraphicFrame>())
+            foreach (var graphicFrame in this._slidePart.Slide.Descendants<GraphicFrame>())
             {
-                var cNvPr = graphicFrame.NonVisualGraphicFrameProperties.NonVisualDrawingProperties;
-                if (cNvPr.Title != null)
-                {
-                    var title = cNvPr.Title.Value;
-                    tables.Add(new PptxTable(this, tblId, title));
-                    tblId++;
-                }
+              if (graphicFrame.NonVisualGraphicFrameProperties == null) continue;
+              
+              var cNvPr = graphicFrame.NonVisualGraphicFrameProperties.NonVisualDrawingProperties;
+
+              if (cNvPr != null && cNvPr.Title == null) continue;
+             
+              var title = cNvPr.Title.Value;
+              tables.Add(new PptxTable(this, tblId, title));
+              tblId++;
             }
 
             return tables;
@@ -145,7 +147,7 @@ namespace PptxTemplater
         /// <param name="replacementType">The type of replacement to perform.</param>
         public void ReplaceTag(string tag, string newText, ReplacementType replacementType)
         {
-            foreach (var p in this.slidePart.Slide.Descendants<A.Paragraph>())
+            foreach (var p in this._slidePart.Slide.Descendants<A.Paragraph>())
             {
                 switch (replacementType)
                 {
@@ -203,7 +205,7 @@ namespace PptxTemplater
 
             var imagePart = this.AddPicture(newPicture, contentType);
 
-            foreach (var pic in this.slidePart.Slide.Descendants<Picture>())
+            foreach (var pic in this._slidePart.Slide.Descendants<Picture>())
             {
                 var cNvPr = pic.NonVisualPictureProperties.NonVisualDrawingProperties;
                 if (cNvPr.Title != null)
@@ -212,7 +214,7 @@ namespace PptxTemplater
                     if (title.Contains(tag))
                     {
                         // Gets the relationship ID of the part
-                        var rId = this.slidePart.GetIdOfPart(imagePart);
+                        var rId = this._slidePart.GetIdOfPart(imagePart);
 
                         pic.BlipFill.Blip.Embed.Value = rId;
                     }
@@ -248,10 +250,10 @@ namespace PptxTemplater
         /// </remarks>
         public PptxSlide Clone()
         {
-            var slideTemplate = this.slidePart;
+            var slideTemplate = this._slidePart;
 
             // Clone slide contents
-            var slidePartClone = this.presentationPart.AddNewPart<SlidePart>();
+            var slidePartClone = this._presentationPart.AddNewPart<SlidePart>();
             using (var templateStream = slideTemplate.GetStream(FileMode.Open))
             {
                 slidePartClone.FeedData(templateStream);
@@ -270,7 +272,7 @@ namespace PptxTemplater
                 }
             }
 
-            return new PptxSlide(this.presentationPart, slidePartClone);
+            return new PptxSlide(this._presentationPart, slidePartClone);
         }
 
         /// <summary>
@@ -285,7 +287,7 @@ namespace PptxTemplater
         public static void InsertAfter(PptxSlide newSlide, PptxSlide prevSlide)
         {
             // Find the presentationPart
-            var presentationPart = prevSlide.presentationPart;
+            var presentationPart = prevSlide._presentationPart;
 
             var slideIdList = presentationPart.Presentation.SlideIdList;
 
@@ -294,7 +296,7 @@ namespace PptxTemplater
             foreach (SlideId slideId in slideIdList.ChildElements)
             {
                 // See http://openxmldeveloper.org/discussions/development_tools/f/17/p/5302/158602.aspx
-                if (slideId.RelationshipId == presentationPart.GetIdOfPart(prevSlide.slidePart))
+                if (slideId.RelationshipId == presentationPart.GetIdOfPart(prevSlide._slidePart))
                 {
                     prevSlideId = slideId;
                     break;
@@ -308,7 +310,7 @@ namespace PptxTemplater
             // Inserts the specified element immediately after the specified reference element.
             var newSlideId = slideIdList.InsertAfter(new SlideId(), prevSlideId);
             newSlideId.Id = maxSlideId + 1;
-            newSlideId.RelationshipId = presentationPart.GetIdOfPart(newSlide.slidePart);
+            newSlideId.RelationshipId = presentationPart.GetIdOfPart(newSlide._slidePart);
         }
 
         /// <summary>
@@ -319,17 +321,17 @@ namespace PptxTemplater
         /// </remarks>
         public void Remove()
         {
-            var slideIdList = this.presentationPart.Presentation.SlideIdList;
+            var slideIdList = this._presentationPart.Presentation.SlideIdList;
 
             if (slideIdList != null)
               foreach (var slideId in slideIdList.ChildElements.Cast<SlideId>()
-                         .Where(slideId => slideId.RelationshipId == this.presentationPart.GetIdOfPart(this.slidePart)))
+                         .Where(slideId => slideId.RelationshipId == this._presentationPart.GetIdOfPart(this._slidePart)))
               {
                 slideIdList.RemoveChild(slideId);
                 break;
               }
 
-            this.presentationPart.DeletePart(this.slidePart);
+            this._presentationPart.DeletePart(this._slidePart);
         }
 
         /// <summary>
@@ -397,7 +399,7 @@ namespace PptxTemplater
                     break;
             }
 
-            var imagePart = this.slidePart.AddImagePart(type);
+            var imagePart = this._slidePart.AddImagePart(type);
 
             // FeedData() closes the stream and we cannot reuse it (ObjectDisposedException)
             // solution: copy the original stream to a MemoryStream
@@ -419,7 +421,7 @@ namespace PptxTemplater
         /// <returns>The relationship ID of the image part.</returns>
         internal string GetIdOfImagePart(ImagePart imagePart)
         {
-            return this.slidePart.GetIdOfPart(imagePart);
+            return this._slidePart.GetIdOfPart(imagePart);
         }
 
         /// <summary>
@@ -432,7 +434,7 @@ namespace PptxTemplater
         {
             A.Table tbl = null;
 
-            var graphicFrames = this.slidePart.Slide.Descendants<GraphicFrame>();
+            var graphicFrames = this._slidePart.Slide.Descendants<GraphicFrame>();
             var graphicFrame = graphicFrames.ElementAt(tblId);
             if (graphicFrame != null)
             {
@@ -456,7 +458,7 @@ namespace PptxTemplater
         /// </remarks>
         internal void RemoveTable(int tblId)
         {
-            var graphicFrames = this.slidePart.Slide.Descendants<GraphicFrame>();
+            var graphicFrames = this._slidePart.Slide.Descendants<GraphicFrame>();
             var graphicFrame = graphicFrames.ElementAt(tblId);
             graphicFrame.Remove();
         }
@@ -471,7 +473,7 @@ namespace PptxTemplater
         /// </remarks>
         internal void Save()
         {
-            this.slidePart.Slide.Save();
+            this._slidePart.Slide.Save();
         }
     }
 }

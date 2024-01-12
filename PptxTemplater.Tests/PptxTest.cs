@@ -158,17 +158,17 @@
             Assert.AreEqual(4, nbSlides);
 
             {
-                IEnumerable<PptxSlide> slides = pptx.FindSlides("{{comment1}}");
+                IEnumerable<PptxSlide> slides = pptx.FindSlidesByNote("{{comment1}}");
                 Assert.AreEqual(1, slides.Count());
             }
 
             {
-                IEnumerable<PptxSlide> slides = pptx.FindSlides("{{comment2}}");
+                IEnumerable<PptxSlide> slides = pptx.FindSlidesByNote("{{comment2}}");
                 Assert.AreEqual(1, slides.Count());
             }
 
             {
-                IEnumerable<PptxSlide> slides = pptx.FindSlides("{{comment3}}");
+                IEnumerable<PptxSlide> slides = pptx.FindSlidesByNote("{{comment3}}");
                 Assert.AreEqual(1, slides.Count());
             }
 
@@ -912,7 +912,7 @@ Tranquille. Il a deux trous rouges au côté droit.";
             const string picture1_replace_jpeg_contentType = "image/jpeg";
             byte[] picture1_replace_empty = new byte[] { };
 
-            PptxSlide slideTemplate = pptx.FindSlides("{{LotsOfPictures}}").FirstOrDefault();
+            PptxSlide slideTemplate = pptx.FindSlidesByNote("{{LotsOfPictures}}").FirstOrDefault();
 
             int nbSlidesToGenerate = 100;
 

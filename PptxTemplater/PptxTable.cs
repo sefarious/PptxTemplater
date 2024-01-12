@@ -121,16 +121,16 @@
     /// </remarks>
     public class PptxTable
     {
-        private PptxSlide slideTemplate;
+        private PptxSlide _slideTemplate;
 
-        private readonly int tblId;
+        private readonly int _tblId;
 
         public string Title { get; private set; }
 
         internal PptxTable(PptxSlide slideTemplate, int tblId, string title)
         {
-            this.slideTemplate = slideTemplate;
-            this.tblId = tblId;
+            this._slideTemplate = slideTemplate;
+            this._tblId = tblId;
             this.Title = title;
         }
 
@@ -174,7 +174,7 @@
         /// </summary>
         public void Remove()
         {
-            this.slideTemplate.RemoveTable(this.tblId);
+            this._slideTemplate.RemoveTable(this._tblId);
         }
 
         /// <summary>
@@ -183,7 +183,7 @@
         /// <param name="columns">Indexes of the columns to remove.</param>
         public void RemoveColumns(IEnumerable<int> columns)
         {
-            A.Table tbl = this.slideTemplate.FindTable(this.tblId);
+            A.Table tbl = this._slideTemplate.FindTable(this._tblId);
             A.TableGrid tblGrid = tbl.TableGrid;
 
             // Remove the latest columns first
@@ -209,7 +209,7 @@
                 gridCol.Remove();
             }
 
-            this.slideTemplate.Save();
+            this._slideTemplate.Save();
         }
 
         /// <summary>
@@ -273,8 +273,8 @@
         {
             bool replacedAtLeastOnce = false;
 
-            PptxSlide slide = this.slideTemplate;
-            A.Table tbl = slide.FindTable(this.tblId);
+            PptxSlide slide = this._slideTemplate;
+            A.Table tbl = slide.FindTable(this._tblId);
 
             // a:tr
             foreach (A.TableRow tr in tbl.Descendants<A.TableRow>())
@@ -330,8 +330,8 @@
         /// <returns>The list of remaining rows that could not be inserted, you will have to create a new slide.</returns>
         public List<Cell[]> SetRows(IList<Cell[]> rows)
         {
-            PptxSlide slide = this.slideTemplate;
-            A.Table tbl = slide.FindTable(this.tblId);
+            PptxSlide slide = this._slideTemplate;
+            A.Table tbl = slide.FindTable(this._tblId);
 
             int tblRowsCount = RowsCount(tbl);
 
@@ -393,7 +393,7 @@
         {
             List<string> titles = new List<string>();
 
-            A.Table tbl = this.slideTemplate.FindTable(this.tblId);
+            A.Table tbl = this._slideTemplate.FindTable(this._tblId);
             A.TableRow tr = GetRow(tbl, 0); // The first table row == the columns
 
             int columnsCount = this.ColumnsCount();
@@ -413,7 +413,7 @@
         /// <returns>The number of columns.</returns>
         public int ColumnsCount()
         {
-            A.Table tbl = this.slideTemplate.FindTable(this.tblId);
+            A.Table tbl = this._slideTemplate.FindTable(this._tblId);
             return CellsCount(tbl) / RowsCount(tbl);
         }
 
@@ -423,7 +423,7 @@
         /// <returns>The number of cells.</returns>
         public int CellsCount()
         {
-            A.Table tbl = this.slideTemplate.FindTable(this.tblId);
+            A.Table tbl = this._slideTemplate.FindTable(this._tblId);
             return CellsCount(tbl);
         }
 

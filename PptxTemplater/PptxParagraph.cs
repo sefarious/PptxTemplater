@@ -68,7 +68,7 @@
             {
                 newText = string.Empty;
             }
-            newText = RemoveInvalidXMLChars(newText);
+            newText = RemoveInvalidXmlChars(newText);
 
             while (true)
             {
@@ -158,7 +158,7 @@
         /// <remarks>
         /// <see href="http://stackoverflow.com/questions/20762/how-do-you-remove-invalid-hexadecimal-characters-from-an-xml-based-data-source-p">How do you remove invalid hexadecimal characters from an XML-based data source</see>
         /// </remarks>
-        private static string RemoveInvalidXMLChars(string input)
+        private static string RemoveInvalidXmlChars(string input)
         {
             return new string(input.Where(value =>
                                 (value >= 0x0020 && value <= 0xD7FF) ||
