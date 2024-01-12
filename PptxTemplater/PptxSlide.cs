@@ -1,4 +1,6 @@
-﻿namespace PptxTemplater
+﻿using DocumentFormat.OpenXml.Bibliography;
+
+namespace PptxTemplater
 {
     using System.Collections.Generic;
     using System.IO;
@@ -56,10 +58,10 @@
         /// <returns>The title or an empty string.</returns>
         public string GetTitle()
         {
-            string title = string.Empty;
+            var title = string.Empty;
 
             // Find the title if any
-            Shape titleShape = this.slidePart.Slide.Descendants<Shape>().FirstOrDefault(sp => IsShapeATitle(sp));
+            var titleShape = this.slidePart.Slide.Descendants<Shape>().FirstOrDefault(sp => IsShapeATitle(sp));
             if (titleShape != null)
             {
                 title = string.Join(" ", titleShape.Descendants<A.Paragraph>().Select(p => PptxParagraph.GetTexts(p)));
@@ -94,13 +96,13 @@
         {
             var tables = new List<PptxTable>();
 
-            int tblId = 0;
-            foreach (GraphicFrame graphicFrame in this.slidePart.Slide.Descendants<GraphicFrame>())
+            var tblId = 0;
+            foreach (var graphicFrame in this.slidePart.Slide.Descendants<GraphicFrame>())
             {
                 var cNvPr = graphicFrame.NonVisualGraphicFrameProperties.NonVisualDrawingProperties;
                 if (cNvPr.Title != null)
                 {
-                    string title = cNvPr.Title.Value;
+                    var title = cNvPr.Title.Value;
                     tables.Add(new PptxTable(this, tblId, title));
                     tblId++;
                 }
@@ -143,7 +145,7 @@
         /// <param name="replacementType">The type of replacement to perform.</param>
         public void ReplaceTag(string tag, string newText, ReplacementType replacementType)
         {
-            foreach (A.Paragraph p in this.slidePart.Slide.Descendants<A.Paragraph>())
+            foreach (var p in this.slidePart.Slide.Descendants<A.Paragraph>())
             {
                 switch (replacementType)
                 {
@@ -199,18 +201,18 @@
                 return;
             }
 
-            ImagePart imagePart = this.AddPicture(newPicture, contentType);
+            var imagePart = this.AddPicture(newPicture, contentType);
 
-            foreach (Picture pic in this.slidePart.Slide.Descendants<Picture>())
+            foreach (var pic in this.slidePart.Slide.Descendants<Picture>())
             {
                 var cNvPr = pic.NonVisualPictureProperties.NonVisualDrawingProperties;
                 if (cNvPr.Title != null)
                 {
-                    string title = cNvPr.Title.Value;
+                    var title = cNvPr.Title.Value;
                     if (title.Contains(tag))
                     {
                         // Gets the relationship ID of the part
-                        string rId = this.slidePart.GetIdOfPart(imagePart);
+                        var rId = this.slidePart.GetIdOfPart(imagePart);
 
                         pic.BlipFill.Blip.Embed.Value = rId;
                     }
@@ -231,7 +233,7 @@
         /// <param name="contentType">The picture content type: image/png, image/jpeg...</param>
         public void ReplacePicture(string tag, string newPictureFile, string contentType)
         {
-            byte[] bytes = File.ReadAllBytes(newPictureFile);
+            var bytes = File.ReadAllBytes(newPictureFile);
             this.ReplacePicture(tag, bytes, contentType);
         }
 
@@ -246,10 +248,10 @@
         /// </remarks>
         public PptxSlide Clone()
         {
-            SlidePart slideTemplate = this.slidePart;
+            var slideTemplate = this.slidePart;
 
             // Clone slide contents
-            SlidePart slidePartClone = this.presentationPart.AddNewPart<SlidePart>();
+            var slidePartClone = this.presentationPart.AddNewPart<SlidePart>();
             using (var templateStream = slideTemplate.GetStream(FileMode.Open))
             {
                 slidePartClone.FeedData(templateStream);
@@ -259,9 +261,9 @@
             slidePartClone.AddPart(slideTemplate.SlideLayoutPart);
 
             // Copy the image parts
-            foreach (ImagePart image in slideTemplate.ImageParts)
+            foreach (var image in slideTemplate.ImageParts)
             {
-                ImagePart imageClone = slidePartClone.AddImagePart(image.ContentType, slideTemplate.GetIdOfPart(image));
+                var imageClone = slidePartClone.AddImagePart(image.ContentType, slideTemplate.GetIdOfPart(image));
                 using (var imageStream = image.GetStream())
                 {
                     imageClone.FeedData(imageStream);
@@ -285,7 +287,7 @@
             // Find the presentationPart
             var presentationPart = prevSlide.presentationPart;
 
-            SlideIdList slideIdList = presentationPart.Presentation.SlideIdList;
+            var slideIdList = presentationPart.Presentation.SlideIdList;
 
             // Find the slide id where to insert our slide
             SlideId prevSlideId = null;
@@ -300,11 +302,11 @@
             }
 
             // Find the highest id
-            uint maxSlideId = slideIdList.ChildElements.Cast<SlideId>().Max(x => x.Id.Value);
+            var maxSlideId = slideIdList.ChildElements.Cast<SlideId>().Max(x => x.Id.Value);
 
             // public override T InsertAfter<T>(T newChild, DocumentFormat.OpenXml.OpenXmlElement refChild)
             // Inserts the specified element immediately after the specified reference element.
-            SlideId newSlideId = slideIdList.InsertAfter(new SlideId(), prevSlideId);
+            var newSlideId = slideIdList.InsertAfter(new SlideId(), prevSlideId);
             newSlideId.Id = maxSlideId + 1;
             newSlideId.RelationshipId = presentationPart.GetIdOfPart(newSlide.slidePart);
         }
@@ -317,16 +319,15 @@
         /// </remarks>
         public void Remove()
         {
-            SlideIdList slideIdList = this.presentationPart.Presentation.SlideIdList;
+            var slideIdList = this.presentationPart.Presentation.SlideIdList;
 
-            foreach (SlideId slideId in slideIdList.ChildElements)
-            {
-                if (slideId.RelationshipId == this.presentationPart.GetIdOfPart(this.slidePart))
-                {
-                    slideIdList.RemoveChild(slideId);
-                    break;
-                }
-            }
+            if (slideIdList != null)
+              foreach (var slideId in slideIdList.ChildElements.Cast<SlideId>()
+                         .Where(slideId => slideId.RelationshipId == this.presentationPart.GetIdOfPart(this.slidePart)))
+              {
+                slideIdList.RemoveChild(slideId);
+                break;
+              }
 
             this.presentationPart.DeletePart(this.slidePart);
         }
@@ -336,18 +337,21 @@
         /// </summary>
         private static bool IsShapeATitle(Shape sp)
         {
-            bool isTitle = false;
+            var isTitle = false;
+
+            if (sp.NonVisualShapeProperties == null || sp.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties == null) return isTitle;
+
+
 
             var ph = sp.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties.GetFirstChild<PlaceholderShape>();
-            if (ph != null && ph.Type != null && ph.Type.HasValue)
+
+            if (ph?.Type == null || !ph.Type.HasValue) return isTitle;
+
+
+            var placeholderType = (PlaceholderValues)ph.Type;
+            if (placeholderType.Equals(PlaceholderValues.Title) || placeholderType.Equals(PlaceholderValues.CenteredTitle))
             {
-                switch ((PlaceholderValues)ph.Type)
-                {
-                    case PlaceholderValues.Title:
-                    case PlaceholderValues.CenteredTitle:
-                        isTitle = true;
-                        break;
-                }
+              isTitle = true;
             }
 
             return isTitle;
@@ -361,7 +365,7 @@
         /// <returns>The image part</returns>
         internal ImagePart AddPicture(byte[] picture, string contentType)
         {
-            ImagePartType type = 0;
+          var type = new PartTypeInfo();
             switch (contentType)
             {
                 case "image/bmp":
@@ -393,11 +397,11 @@
                     break;
             }
 
-            ImagePart imagePart = this.slidePart.AddImagePart(type);
+            var imagePart = this.slidePart.AddImagePart(type);
 
             // FeedData() closes the stream and we cannot reuse it (ObjectDisposedException)
             // solution: copy the original stream to a MemoryStream
-            using (MemoryStream stream = new MemoryStream(picture))
+            using (var stream = new MemoryStream(picture))
             {
                 imagePart.FeedData(stream);
             }
@@ -428,8 +432,8 @@
         {
             A.Table tbl = null;
 
-            IEnumerable<GraphicFrame> graphicFrames = this.slidePart.Slide.Descendants<GraphicFrame>();
-            GraphicFrame graphicFrame = graphicFrames.ElementAt(tblId);
+            var graphicFrames = this.slidePart.Slide.Descendants<GraphicFrame>();
+            var graphicFrame = graphicFrames.ElementAt(tblId);
             if (graphicFrame != null)
             {
                 tbl = graphicFrame.Descendants<A.Table>().First();
@@ -452,8 +456,8 @@
         /// </remarks>
         internal void RemoveTable(int tblId)
         {
-            IEnumerable<GraphicFrame> graphicFrames = this.slidePart.Slide.Descendants<GraphicFrame>();
-            GraphicFrame graphicFrame = graphicFrames.ElementAt(tblId);
+            var graphicFrames = this.slidePart.Slide.Descendants<GraphicFrame>();
+            var graphicFrame = graphicFrames.ElementAt(tblId);
             graphicFrame.Remove();
         }
 

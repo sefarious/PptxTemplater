@@ -18,7 +18,7 @@
     /// <returns>Follows the facade pattern.</returns>
     public sealed class Pptx : IDisposable
     {
-        private readonly PresentationDocument presentationDocument;
+        private readonly PresentationDocument _presentationDocument;
 
         /// <summary>
         /// Regex pattern to extract tags from templates.
@@ -52,7 +52,7 @@
                     break;
             }
 
-            this.presentationDocument = PresentationDocument.Open(file, isEditable);
+            this._presentationDocument = PresentationDocument.Open(file, isEditable);
         }
 
         /// <summary>
@@ -75,7 +75,7 @@
                     break;
             }
 
-            this.presentationDocument = PresentationDocument.Open(stream, isEditable);
+            this._presentationDocument = PresentationDocument.Open(stream, isEditable);
         }
 
         #endregion ctor
@@ -93,7 +93,7 @@
         /// </remarks>
         public void Close()
         {
-            this.presentationDocument.Close();
+            this._presentationDocument.Save();
         }
 
         /// <summary>
@@ -105,7 +105,7 @@
         /// </remarks>
         public int SlidesCount()
         {
-            PresentationPart presentationPart = this.presentationDocument.PresentationPart;
+            PresentationPart presentationPart = this._presentationDocument.PresentationPart;
             return presentationPart.SlideParts.Count();
         }
 
@@ -148,7 +148,7 @@
         {
             byte[] thumbnail;
 
-            var thumbnailPart = this.presentationDocument.ThumbnailPart;
+            var thumbnailPart = this._presentationDocument.ThumbnailPart;
             using (var stream = thumbnailPart.GetStream(FileMode.Open, FileAccess.Read))
             {
                 var image = Image.FromStream(stream);
@@ -189,7 +189,7 @@
         /// <returns>A PptxSlide.</returns>
         public PptxSlide GetSlide(int slideIndex)
         {
-            PresentationPart presentationPart = this.presentationDocument.PresentationPart;
+            PresentationPart presentationPart = this._presentationDocument.PresentationPart;
 
             // Get the collection of slide IDs
             OpenXmlElementList slideIds = presentationPart.Presentation.SlideIdList.ChildElements;
